@@ -267,7 +267,7 @@ int game_process::move(int key)
 				for(t_float_id = _float_box_id+column;t_float_id<((row-1)*column);t_float_id+=column)
 				{
 					/* 如果可以摘取则返回摘取ID */
-					if(_box_plane[t_float_id]==full_box_type)
+					if(_box_plane[t_float_id]<bind_box_type && _box_plane[t_float_id]>fill_box_type)
 					{
 						_box_plane[t_float_id]-=box_switch_type;
 						_box_count++;
@@ -319,7 +319,6 @@ int game_process::move(int key)
 						else
 						{
 							_box_plane[t_float_id]+=box_switch_type;
-							cout<<_box_plane[t_float_id]<<endl;
 							_box_count--;
 							return t_float_id+game_push;
 						}
@@ -335,7 +334,7 @@ int game_process::move(int key)
 				for(t_float_id = _float_box_id-column;t_float_id>column;t_float_id-=column)
 				{
 					/* 如果可以摘取则返回摘取ID */
-					if(t_float_id==full_box_type)
+					if(_box_plane[t_float_id]<bind_box_type && _box_plane[t_float_id]>fill_box_type)
 					{
 						_box_count++;
 						_box_plane[t_float_id]-=box_switch_type;
@@ -343,7 +342,7 @@ int game_process::move(int key)
 					}
 					else
 					/* 如果是固定方块返回错误 */
-					if(t_float_id==bind_box_type)
+					if(_box_plane[t_float_id]==bind_box_type)
 					{
 						return game_error;
 					}
@@ -396,14 +395,16 @@ int game_process::move(int key)
 				for(t_float_id = _float_box_id+1;t_float_id<_float_box_id+(column-1);t_float_id+=1)
 				{
 					/* 如果可以摘取则返回摘取ID */
-					if(t_float_id==full_box_type)
+					if(_box_plane[t_float_id]<bind_box_type && _box_plane[t_float_id]>fill_box_type)
 					{
 						if(!state())return game_win;
-						return game_push;
+						_box_plane[t_float_id]-=box_switch_type;
+						_box_count++;
+						return game_pull+t_float_id;
 					}
 					else
 					/* 如果是固定方块返回错误 */
-					if(t_float_id==bind_box_type)
+					if(_box_plane[t_float_id]==bind_box_type)
 					{
 						return game_error;
 					}
@@ -456,14 +457,16 @@ int game_process::move(int key)
 				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id+(column-1);t_float_id-=1)
 				{
 					/* 如果可以摘取则返回摘取ID */
-					if(t_float_id==full_box_type)
+					if(_box_plane[t_float_id]>bind_box_type && _box_plane[t_float_id]<fill_box_type)
 					{
 						if(!state())return game_win;
+						_box_plane[t_float_id]-=box_switch_type;
+						_box_count++;
 						return game_push;
 					}
 					else
 					/* 如果是固定方块返回错误 */
-					if(t_float_id==bind_box_type)
+					if(_box_plane[t_float_id]==bind_box_type)
 					{
 						return game_error;
 					}
