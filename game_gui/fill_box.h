@@ -65,14 +65,13 @@ int fill_box::handle(int id,SDL_Event* e)
 }
 int fill_box::on_timer(sdl_board* obj,void* data)
 {
-	cout<<this<<endl;
 	int dx = _rect.x;
 	int dy = _rect.y;
 	int dst = sqrt(pow((dx-_loc.x),2)+pow((dy-_loc.y),2));
 	if(dst>5)
 	{
-		_rect.x += (_loc.x-_rect.x)/5;
-		_rect.y += (_loc.y-_rect.y)/5;
+		_rect.x += (_loc.x-_rect.x)/3;
+		_rect.y += (_loc.y-_rect.y)/3;
 		alpha(abs(dst/_dst-_f)*255);
 	}
 	else

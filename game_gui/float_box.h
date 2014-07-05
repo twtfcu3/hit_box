@@ -13,7 +13,6 @@ typedef class float_box : public GUI<float_box,sdl_widget>
 		int sysevent(SDL_Event*);
 		int handle(int,SDL_Event*);
 		int on_timer(sdl_board*,void*);
-		int on_click(sdl_board*,void*);
 	protected:
 		float _alpha;
 		int f;
@@ -74,17 +73,5 @@ int float_box::on_timer(sdl_board* obj,void* data)
 		f*=-1;
 	}
 	alpha(_alpha);
-}
-int float_box::on_click(sdl_board* obj,void* data)
-{
-	_alpha = 255;
-	if(_rect.x==0)
-	{
-		_rect.x = 100;
-	}
-	else
-	{
-		_rect.x = 0;
-	}
 }
 #endif //__FLOAT_BOX_HEAD__

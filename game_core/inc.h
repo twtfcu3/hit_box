@@ -5,11 +5,11 @@ const int column = 8;
 const int info_height = 30;
 //-----------------------------------------
 const int float_box_type = 1;
-const int empty_box_type = 2;
+const int empty_box_type = 3;
 const int fill_box_type = 4;
-const int full_box_type = 5;
-const int bind_box_type = 6;
-const int box_switch_typp = 1;
+const int full_box_type = 6;
+const int bind_box_type = 7;
+const int box_switch_type = 2;
 //----------------------------------------
 const int move_up = 1;
 const int move_down = 2;

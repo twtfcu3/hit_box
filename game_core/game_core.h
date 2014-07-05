@@ -4,9 +4,6 @@
 #include <cmath>
 #include <iostream>
 #include <string.h>
-/* 
-	每关由两个障碍块和三个填充块组成 
- */
 struct game_box_status
 {
 	int a;
@@ -30,6 +27,7 @@ class game_level_struct
 			改变指定级别的指定数据 
 		 */
 		int value(int,int,int);	
+		int value(int,int,int,int,int,int);
 		/* 
 			取得当前游戏级别 
 		 */
@@ -39,6 +37,9 @@ class game_level_struct
 		 */
 		int level(int);
 	protected:
+		/* 
+			一共有6关,每关由两个障碍块和三个填充块组成 
+		*/
 		int _level[6][5];
 		int _level_count;
 		int _cur_level;
@@ -49,6 +50,12 @@ game_level_struct::game_level_struct()
 	_level_count = 6;
 	_cur_level = 0;
 	/* 设置游戏关卡 */
+	value(0,44,45,36,43,52);
+	value(1,44,45,36,43,52);
+	value(2,44,45,36,43,52);
+	value(3,44,45,36,43,52);
+	value(4,44,45,36,43,52);
+	value(5,44,45,36,43,52);
 }
 int game_level_struct::value(int level,int id)
 {
@@ -57,8 +64,18 @@ int game_level_struct::value(int level,int id)
 }
 int game_level_struct::value(int level,int id,int v)
 {
-	if(id>4 || level>=_level_count)return -1;
+	if(id>5 || level>=_level_count)return -1;
 	_level[level][id]=v;
+	return 0;
+}
+int game_level_struct::value(int level,int a,int b,int c,int d,int e)
+{
+	if(level>=_level_count)return -1;
+	_level[level][0]=a;
+	_level[level][1]=b;
+	_level[level][2]=c;
+	_level[level][3]=d;
+	_level[level][4]=e;
 	return 0;
 }
 int game_level_struct::level()
@@ -100,6 +117,10 @@ class game_process
 		 */
 		int box_count();
 		/* 
+			返回指定方块的类型
+		 */
+		int box_type(int);
+		/* 
 			返回当前游戏层级 
 		 */
 		int level();
@@ -126,13 +147,27 @@ int game_process::init(int l)
 	_box_count = 3;
 	memset((char*)&_box_plane,0x00,sizeof(int)*row*column);
 	_box_plane[0]=float_box_type;
-	for(i=0;i<3;i++)
+	/* 设置空白方块或活动方块 */
+	for(i=0;i<column*row;i++)
 	{
-		_box_plane[_level.value(l,i)] = fill_box_type;
+		if(i<column || i>((row-1)*column) || !(i%column) || !((i+1)%column))
+		{
+			_box_plane[i] = float_box_type;
+		}
+		else
+		{
+			_box_plane[i] = empty_box_type;
+		}
 	}
-	for(i=3;i<5;i++)
+	/* 设置固定方块ID */
+	for(i=0;i<2;i++)
 	{
 		_box_plane[_level.value(l,i)] = bind_box_type;
+	}
+	/* 设置填充方块ID */
+	for(i=2;i<5;i++)
+	{
+		_box_plane[_level.value(l,i)] = fill_box_type;
 	}
 	return 0;
 }
@@ -151,6 +186,11 @@ int game_process::last()
 int game_process::box_count()
 {
 	return _box_count;
+}
+int game_process::box_type(int id)
+{
+	if(id>(row*column-1))return -1;
+	return _box_plane[id];
 }
 int game_process::level()
 {
@@ -178,7 +218,6 @@ int game_process::move(int key)
 {
 	int t_float_id;
 	int i;
-	/* 是 */
 	switch(key)
 	{
 		case move_up:
@@ -187,10 +226,10 @@ int game_process::move(int key)
 				 并且滑动ID大或等于8,
 				 表示可以滑动
 			 */
-			if(!((_float_box_id%8) || !(_float_box_id+1)%8) && _float_box_id>=column)
+			if((!(_float_box_id%column) || !((_float_box_id+1)%column)) && _float_box_id>=column)
 			{
 				_float_box_id-=column;
-				return game_float;
+				return game_float+_float_box_id;
 			}
 			else
 			/* 
@@ -198,13 +237,24 @@ int game_process::move(int key)
 			 */
 			if(_float_box_id > (row-1)*column)
 			{
-				for(t_float_id = _float_box_id;t_float_id>column;t_float_id-=column)
+				if(!_box_count)return game_error;
+				for(t_float_id = _float_box_id-column;t_float_id>column;t_float_id-=column)
 				{
 					/* 如果可以填充则返回填充ID */
-					if(t_float_id>fill_box_type)
+					if(_box_plane[t_float_id]>fill_box_type)
 					{
 						if(!state())return game_win;
-						return game_push;
+						t_float_id+=column;
+						if(t_float_id>((row-1)*column))
+						{
+							return game_error;
+						}
+						else
+						{
+							_box_plane[t_float_id]+=box_switch_type;
+							_box_count--;
+							return t_float_id+game_push;
+						}
 					}
 				}
 			}
@@ -212,18 +262,20 @@ int game_process::move(int key)
 			/* 
 				如果当前滑块不是移动而是摘取 
 			 */
-			if(_float_box_id<row)
+			if(_float_box_id<column)
 			{
-				for(t_float_id = _float_box_id;t_float_id<((row-1)*column);t_float_id+=column)
+				for(t_float_id = _float_box_id+column;t_float_id<((row-1)*column);t_float_id+=column)
 				{
 					/* 如果可以摘取则返回摘取ID */
-					if(t_float_id==full_box_type)
+					if(_box_plane[t_float_id]==full_box_type)
 					{
-						return game_pull;
+						_box_plane[t_float_id]-=box_switch_type;
+						_box_count++;
+						return game_pull+t_float_id;
 					}
 					else
 					/* 如果有固定方块返回错误 */
-					if(t_float_id==bind_box_type)
+					if(_box_plane[t_float_id]==bind_box_type)
 					{
 						return game_error;
 					}
@@ -240,23 +292,37 @@ int game_process::move(int key)
 				 并且滑动ID大或等于8,
 				 表示可以滑动
 			 */
-			if(!((_float_box_id%8) || !(_float_box_id+1)%8) && _float_box_id>=column)
+			if((!(_float_box_id%column) || !((_float_box_id+1)%column)) && _float_box_id<column*(row-1))
 			{
 				_float_box_id+=column;
+				return game_float + _float_box_id;
 			}
 			else
 			/* 
 				如果当前滑块不是移动而是填充 
 			 */
-			if(_float_box_id<row)
+			if(_float_box_id<column)
 			{
-				for(t_float_id = _float_box_id;t_float_id<((row-1)*column);t_float_id+=column)
+				if(!_box_count)return game_error;
+				for(t_float_id = _float_box_id+column;t_float_id<((row-1)*column);t_float_id+=column)
 				{
 					/* 如果可以填充则返回填充ID */
-					if(t_float_id>fill_box_type)
+					if(_box_plane[t_float_id]>fill_box_type)
 					{
 						if(!state())return game_win;
-						return game_push;
+						t_float_id-=column;
+						/* 如果填充后的ID到了上边界，返回错误值 */
+						if(t_float_id<column)
+						{
+							return game_error;
+						}
+						else
+						{
+							_box_plane[t_float_id]+=box_switch_type;
+							cout<<_box_plane[t_float_id]<<endl;
+							_box_count--;
+							return t_float_id+game_push;
+						}
 					}
 				}
 			}
@@ -266,12 +332,14 @@ int game_process::move(int key)
 			 */
 			if(_float_box_id > (row-1)*column)
 			{
-				for(t_float_id = _float_box_id;t_float_id>column;t_float_id-=column)
+				for(t_float_id = _float_box_id-column;t_float_id>column;t_float_id-=column)
 				{
 					/* 如果可以摘取则返回摘取ID */
 					if(t_float_id==full_box_type)
 					{
-						return game_pull;
+						_box_count++;
+						_box_plane[t_float_id]-=box_switch_type;
+						return game_pull+t_float_id;
 					}
 					else
 					/* 如果是固定方块返回错误 */
@@ -292,32 +360,38 @@ int game_process::move(int key)
 				并且滑动方块ID加1后不是8的倍数
 				表示可以滑动
 			 */
-			if((_float_box_id<column || _float_box_id>((row-1)*column-1)) && (_float_box_id+1)%8)
+			if((_float_box_id<column || _float_box_id>((row-1)*column-1)) && _float_box_id%column)
 			{
-				_float_box_id+=1;
+				_float_box_id-=1;
+				return _float_box_id+game_float;
 			}
 			else
-			/* 如果滑动方块不是滑动而是摘取 */
-			if(!((_float_box_id+1)%8))
+			/* 如果滑动方块不是滑动而是填充 */
+			if(!((_float_box_id+1)%column))
 			{
-				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id+(column-1);t_float_id-=1)
+				if(!_box_count)return game_error;
+				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id-(column-1);t_float_id-=1)
 				{
-					/* 如果可以摘取则返回摘取ID */
-					if(t_float_id==full_box_type)
+					/* 如果可以填充则返回填充ID */
+					if(_box_plane[t_float_id]>fill_box_type)
 					{
-						return game_pull;
-					}
-					else
-					/* 如果是固定方块返回错误 */
-					if(t_float_id==bind_box_type)
-					{
-						return game_error;
+						t_float_id+=1;
+						if(!(t_float_id%column))
+						{
+							return game_error;
+						}
+						else
+						{
+							_box_plane[t_float_id]+=box_switch_type;
+							_box_count--;
+							return game_push+t_float_id;
+						}
 					}
 				}
 			}
 			else
-			/* 如果滑动方块不是滑动而是填充 */
-			if(!(_float_box_id%8))
+			/* 如果滑动方块不是滑动而是摘取 */
+			if(!(_float_box_id%column))
 			{
 				for(t_float_id = _float_box_id+1;t_float_id<_float_box_id+(column-1);t_float_id+=1)
 				{
@@ -346,32 +420,38 @@ int game_process::move(int key)
 				并且滑动方块ID加1后不是8的倍数
 				表示可以滑动
 			 */
-			if((_float_box_id<column || _float_box_id>((row-1)*column-1)) && (_float_box_id+1)%8)
+			if((_float_box_id<column || _float_box_id>((row-1)*column-1)) && (_float_box_id+1)%column)
 			{
-				_float_box_id-=1;
+				_float_box_id+=1;
+				return _float_box_id+ game_float;
 			}
 			else
-			/* 如果滑动方块不是滑动而是摘取 */
-			if(!(_float_box_id%8))
+			/* 如果滑动方块不是滑动而是填充 */
+			if(!(_float_box_id%column))
 			{
+				if(!_box_count)return game_error;
 				for(t_float_id = _float_box_id+1;t_float_id<_float_box_id+(column-1);t_float_id+=1)
 				{
-					/* 如果可以摘取则返回摘取ID */
-					if(t_float_id==full_box_type)
+					/* 如果可以填充则返回填充ID */
+					if(_box_plane[t_float_id]>fill_box_type)
 					{
-						return game_pull;
-					}
-					else
-					/* 如果是固定方块返回错误 */
-					if(t_float_id==bind_box_type)
-					{
-						return game_error;
+						t_float_id-=1;
+						if(!(t_float_id%column))
+						{
+							return game_error;
+						}
+						else
+						{
+							_box_plane[t_float_id]+=box_switch_type;
+							_box_count--;
+							return game_push+t_float_id;
+						}
 					}
 				}
 			}
 			else
-			/* 如果滑动方块不是滑动而是填充 */
-			if(!((_float_box_id+1)%8))
+			/* 如果滑动方块不是滑动而是摘取 */
+			if(!((_float_box_id+1)%column))
 			{
 				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id+(column-1);t_float_id-=1)
 				{
@@ -400,7 +480,7 @@ int game_process::move(int key)
 int game_process::state()
 {
 	int i,c;
-	for(i=0;i<3;i++)
+	for(i=2;i<5;i++)
 	{
 		if(_box_plane[_level.value(_level.level(),i)] == fill_box_type)return -1;
 	}
