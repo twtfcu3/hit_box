@@ -50,7 +50,7 @@ int fill_box::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
 	if(sdl_widget::init(ptitle,px,py,pw,ph,pflag))return -1;
 	fill_rect(NULL,0x0000ff);
 	blend(SDL_BLENDMODE_BLEND);
-	alpha(100);
+	alpha(0);
 	return 0;
 }
 int fill_box::sysevent(SDL_Event*e)
@@ -71,7 +71,6 @@ int fill_box::on_timer(sdl_board* obj,void* data)
 	int dx = _rect.x;
 	int dy = _rect.y;
 	int dst = sqrt(pow((dx-_loc.x),2)+pow((dy-_loc.y),2));
-	//cout<<"old x:"<<_rect.x<<" old y:"<<_rect.y<<endl;
 	if(dst>5)
 	{
 		_rect.x += (_loc.x-_rect.x)/3;
@@ -85,7 +84,6 @@ int fill_box::on_timer(sdl_board* obj,void* data)
 		_rect.x = _loc.x;
 		_rect.y = _loc.y;
 	}
-	//cout<<"x:"<<_rect.x<<" y:"<<_rect.y<<endl;
 	return 0;
 }
 int fill_box::push(int x,int y)

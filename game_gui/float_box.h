@@ -38,7 +38,7 @@ int float_box::init()
 int float_box::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
 {
 	if(sdl_widget::init(ptitle,px,py,pw,ph,pflag))return -1;
-	fill_rect(NULL,0xffffff);
+	fill_rect(NULL,0x0000ff);
 	_timer = add_timer(100);
 	blend(SDL_BLENDMODE_BLEND);
 	_alpha = 255;

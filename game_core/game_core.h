@@ -28,6 +28,8 @@ class game_level_struct
 		 */
 		int value(int,int,int);	
 		int value(int,int,int,int,int,int);
+		/* 取得游戏级别数 */
+		int level_count();
 		/* 
 			取得当前游戏级别 
 		 */
@@ -49,13 +51,15 @@ game_level_struct::game_level_struct()
 	/* 设置游戏层级 */
 	_level_count = 6;
 	_cur_level = 0;
-	/* 设置游戏关卡 */
+	/* 设置游戏关卡 
+		 一共有6关,每关由两个障碍块和三个填充块组成 
+	 */
 	value(0,44,45,36,43,52);
-	value(1,44,45,36,43,52);
-	value(2,44,45,36,43,52);
-	value(3,44,45,36,43,52);
-	value(4,44,45,36,43,52);
-	value(5,44,45,36,43,52);
+	value(1,34,37,27,28,35);
+	value(2,36,49,28,35,42);
+	value(3,28,44,30,37,43);
+	value(4,36,38,29,45,53);
+	value(5,11,43,27,28,29);
 }
 int game_level_struct::value(int level,int id)
 {
@@ -87,6 +91,10 @@ int game_level_struct::level(int l)
 	if(l>=_level_count)return -1;
 	_cur_level = l;
 	return 0;
+}
+int game_level_struct::level_count()
+{
+		return _level_count;
 }
 class game_process
 {
@@ -136,17 +144,17 @@ class game_process
 };
 game_process::game_process()
 {
+	_float_box_id = 0;
 	init(0);
 }
 int game_process::init(int l)
 {
 	int i;
-	if(l>_level.level())return -1;
+	if(l>_level.level_count())return -1;
+	_level.level(l);
 	/* 初始化方块个数为3 */
-	_float_box_id = 0;
 	_box_count = 3;
-	memset((char*)&_box_plane,0x00,sizeof(int)*row*column);
-	_box_plane[0]=float_box_type;
+	//memset((char*)&_box_plane,0x00,sizeof(int)*row*column);
 	/* 设置空白方块或活动方块 */
 	for(i=0;i<column*row;i++)
 	{
@@ -158,6 +166,7 @@ int game_process::init(int l)
 		{
 			_box_plane[i] = empty_box_type;
 		}
+		//cout<<i<<endl;
 	}
 	/* 设置固定方块ID */
 	for(i=0;i<2;i++)
@@ -169,6 +178,7 @@ int game_process::init(int l)
 	{
 		_box_plane[_level.value(l,i)] = fill_box_type;
 	}
+	_box_plane[_float_box_id]=float_box_type;
 	return 0;
 }
 int game_process::clear()
@@ -473,7 +483,6 @@ int game_process::state()
 	int i,c;
 	for(i=2;i<5;i++)
 	{
-		//cout<<_level.value(_level.level(),i)<<" state:"<<i<<endl;
 		if(_box_plane[_level.value(_level.level(),i)] == fill_box_type)return -1;
 	}
 	return 0;

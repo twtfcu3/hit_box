@@ -1,11 +1,14 @@
 #ifndef __BOX_PLANE_H__
 #define __BOX_PLANE_H__
 #include <SDL2/SDL.h>
+#include <string>
+#include <sstream>
 #include "../sdlgui/sdlgui.h"
 #include "../game_core/inc.h"
 #include "../game_core/game_core.h"
 #include "./float_box.h"
 #include "./fill_box.h"
+#include "./win_plane.h"
 using namespace std;
 typedef class box_plane : public GUI<box_plane,sdl_widget>
 {
@@ -19,6 +22,7 @@ typedef class box_plane : public GUI<box_plane,sdl_widget>
 		int handle(int,SDL_Event*);
 		int on_keyup(sdl_board*,void*);
 		int on_win(sdl_board*,void*);
+		int on_next(sdl_board*,void*);
 	protected:
 		int move_float_box(int);
 		int push_box(int);
@@ -32,6 +36,8 @@ typedef class box_plane : public GUI<box_plane,sdl_widget>
 		sdl_clip bg;
 	protected:
 		game_process game;
+		win_plane win;
+		stringstream str;
 }*box_plane_ptr;
 box_plane::box_plane()
 	:
@@ -56,22 +62,27 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
 	_box.init(NULL,pw/column,(ph-info_height)/row,32,0,0,0,0);
 	/* 加载背景 */
 	bg.init(pw/column,(ph-info_height)/row,"img/ball_backgroup.jpg");
+	/* 加载胜利画面 */
+	win.init("",0,0,pw,ph,1);
+	win.hide();
+	add<win_plane>(&win);
+	/* 注册事件 */
+	win.connect_event("on_click",this,123456789);
 	//
 	_fill[0].init(NULL,0,0,pw/column,(ph-info_height)/row,1);
 	_fill[1].init(NULL,0,0,pw/column,(ph-info_height)/row,1);
 	_fill[2].init(NULL,0,0,pw/column,(ph-info_height)/row,1);
 	_float.init(NULL,0,0,pw/column,(ph-info_height)/row,1);
-	_text.init("点我开始",0,(ph-info_height),pw,info_height,1);
+	_text.init(NULL,0,(ph-info_height),pw,info_height,1);
 	//
 	add<float_box>(&_float);
 	_float.connect_event("on_key_up",this,sdlgui_key_up);
 	add<fill_box>(&_fill[0]);
-	_fill[0].hide();
 	add<fill_box>(&_fill[1]);
-	_fill[0].hide();
 	add<fill_box>(&_fill[2]);
-	_fill[0].hide();
 	_fill[0].connect_event("on_key_up",this,sdlgui_key_up);
+	_fill[1].connect_event("on_key_up",this,sdlgui_key_up);
+	_fill[2].connect_event("on_key_up",this,sdlgui_key_up);
 	//
 	add<sdl_widget>(&_text);
 	_text.fill_rect(NULL,0x00ff00);
@@ -85,12 +96,19 @@ int box_plane::init(int l)
 	int i;
 	SDL_Rect rt;
 	int s=row*column;
+	/* 初始化游戏 */
+	game.init(l);
+	/* 初始化信息 */
+	str.clear();
+	str.str("");
+	str<<"亲！我们在第"<<game.level()<<"关还有"<<game.box_count()<<"个方块要打，等你哦！！！";
+	_text.text(str.str().c_str());
 	/* 初始化填充容器 */
 	_fill_ptr[0]=&_fill[0];
 	_fill_ptr[1]=&_fill[1];
 	_fill_ptr[2]=&_fill[2];
 	/* 画好背景 */
-	fill_rect(NULL,0);
+	fill_rect(NULL,0xffffff);
 	rt.w = bg.clip_width();
 	rt.h = bg.clip_height();
 	for(i=0;i<s;i++)
@@ -99,13 +117,13 @@ int box_plane::init(int l)
 		switch(game.box_type(i))
 		{
 			case float_box_type:
-				_box.surface_alpha_mod(150);
+				_box.surface_alpha_mod(100);
 			break;
 			case empty_box_type:
 				_box.surface_alpha_mod(255);
 			break;
 			case fill_box_type:
-				_box.surface_alpha_mod(150);
+				_box.surface_alpha_mod(200);
 			break;
 			case full_box_type:
 				_box.surface_alpha_mod(200);
@@ -131,6 +149,12 @@ int box_plane::sysevent(SDL_Event*e)
 }
 int box_plane::handle(int id,SDL_Event*e)
 {
+	switch(id)
+	{
+		case 123456789:
+			on_next(this,(void*)e);
+		break;
+	}
 	return sdl_widget::handle(id,e);
 }
 int box_plane::on_keyup(sdl_board* obj,void*e)
@@ -199,6 +223,10 @@ int box_plane::push_box(int id)
 	}
 	_fill_ptr[0]=_fill_ptr[3];
 	_fill_ptr[0]->pos(_float.pos_x(),_float.pos_y());
+	str.clear();
+	str.str("");
+	str<<"亲！我们在第"<<game.level()<<"关还有"<<game.box_count()<<"个方块要打，等你哦！！！";
+	_text.text(str.str().c_str());
 	return _fill_ptr[0]->push(x,y);
 }
 int box_plane::pull_box(int id)
@@ -217,6 +245,10 @@ int box_plane::pull_box(int id)
 			{
 				_fill_ptr[i]=_fill_ptr[i+1];	
 			}
+			str.clear();
+			str.str("");
+			str<<"亲！我们在第"<<game.level()<<"关还有"<<game.box_count()<<"个方块要打，等你哦！！！";
+			_text.text(str.str().c_str());
 			return _fill_ptr[3]->pull(x,y);
 		}
 	}
@@ -224,6 +256,15 @@ int box_plane::pull_box(int id)
 }
 int box_plane::on_win(sdl_board* obj,void* data)
 {
-	cout<<"win"<<endl;
+	win.show();
+}
+int box_plane::on_next(sdl_board* obj,void* data)
+{
+	int i;
+	for(i=0;i<3;i++)
+	{
+		_fill[i].pull(0,0);
+	}
+	init(game.level()+1);
 }
 #endif
