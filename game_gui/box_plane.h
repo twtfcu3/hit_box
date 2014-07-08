@@ -117,7 +117,7 @@ int box_plane::init(int l)
 		switch(game.box_type(i))
 		{
 			case float_box_type:
-				_box.surface_alpha_mod(100);
+				_box.surface_alpha_mod(150);
 			break;
 			case empty_box_type:
 				_box.surface_alpha_mod(255);
