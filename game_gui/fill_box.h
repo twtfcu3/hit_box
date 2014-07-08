@@ -3,9 +3,12 @@
 #include <SDL2/SDL.h>
 #include <cmath>
 #include "../sdlgui/sdlgui.h"
+class box_plane;
 using namespace std;
 typedef class fill_box : public GUI<fill_box,sdl_widget>
 {
+	public:
+		friend class box_plane;
 	public:
 		fill_box();
 		fill_box(const char*,int,int,int,int,Uint32);
@@ -68,6 +71,7 @@ int fill_box::on_timer(sdl_board* obj,void* data)
 	int dx = _rect.x;
 	int dy = _rect.y;
 	int dst = sqrt(pow((dx-_loc.x),2)+pow((dy-_loc.y),2));
+	//cout<<"old x:"<<_rect.x<<" old y:"<<_rect.y<<endl;
 	if(dst>5)
 	{
 		_rect.x += (_loc.x-_rect.x)/3;
@@ -81,6 +85,7 @@ int fill_box::on_timer(sdl_board* obj,void* data)
 		_rect.x = _loc.x;
 		_rect.y = _loc.y;
 	}
+	//cout<<"x:"<<_rect.x<<" y:"<<_rect.y<<endl;
 	return 0;
 }
 int fill_box::push(int x,int y)

@@ -64,7 +64,7 @@ int game_level_struct::value(int level,int id)
 }
 int game_level_struct::value(int level,int id,int v)
 {
-	if(id>5 || level>=_level_count)return -1;
+	if(id>4 || level>=_level_count)return -1;
 	_level[level][id]=v;
 	return 0;
 }
@@ -243,7 +243,6 @@ int game_process::move(int key)
 					/* 如果可以填充则返回填充ID */
 					if(_box_plane[t_float_id]>fill_box_type)
 					{
-						if(!state())return game_win;
 						t_float_id+=column;
 						if(t_float_id>((row-1)*column))
 						{
@@ -253,6 +252,7 @@ int game_process::move(int key)
 						{
 							_box_plane[t_float_id]+=box_switch_type;
 							_box_count--;
+							//if(!state())return game_win;
 							return t_float_id+game_push;
 						}
 					}
@@ -281,10 +281,7 @@ int game_process::move(int key)
 					}
 				}
 			}
-			else
-			{
-				return game_error;
-			}
+			return game_error;
 		break;
 		case move_down:
 			/*
@@ -304,12 +301,12 @@ int game_process::move(int key)
 			if(_float_box_id<column)
 			{
 				if(!_box_count)return game_error;
+				//if(!state())return game_win;
 				for(t_float_id = _float_box_id+column;t_float_id<((row-1)*column);t_float_id+=column)
 				{
 					/* 如果可以填充则返回填充ID */
 					if(_box_plane[t_float_id]>fill_box_type)
 					{
-						if(!state())return game_win;
 						t_float_id-=column;
 						/* 如果填充后的ID到了上边界，返回错误值 */
 						if(t_float_id<column)
@@ -348,10 +345,7 @@ int game_process::move(int key)
 					}
 				}
 			}
-			else
-			{
-				return game_error;
-			}
+			return game_error;
 		break;
 		case move_left:
 			/* 
@@ -369,6 +363,7 @@ int game_process::move(int key)
 			if(!((_float_box_id+1)%column))
 			{
 				if(!_box_count)return game_error;
+				//if(!state())return game_win;
 				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id-(column-1);t_float_id-=1)
 				{
 					/* 如果可以填充则返回填充ID */
@@ -397,7 +392,6 @@ int game_process::move(int key)
 					/* 如果可以摘取则返回摘取ID */
 					if(_box_plane[t_float_id]<bind_box_type && _box_plane[t_float_id]>fill_box_type)
 					{
-						if(!state())return game_win;
 						_box_plane[t_float_id]-=box_switch_type;
 						_box_count++;
 						return game_pull+t_float_id;
@@ -410,10 +404,7 @@ int game_process::move(int key)
 					}
 				}
 			}
-			else
-			{
-				return game_error;
-			}
+			return game_error;
 		break;
 		case move_right:
 			/* 
@@ -431,6 +422,7 @@ int game_process::move(int key)
 			if(!(_float_box_id%column))
 			{
 				if(!_box_count)return game_error;
+				//if(!state())return game_win;
 				for(t_float_id = _float_box_id+1;t_float_id<_float_box_id+(column-1);t_float_id+=1)
 				{
 					/* 如果可以填充则返回填充ID */
@@ -459,7 +451,6 @@ int game_process::move(int key)
 					/* 如果可以摘取则返回摘取ID */
 					if(_box_plane[t_float_id]>bind_box_type && _box_plane[t_float_id]<fill_box_type)
 					{
-						if(!state())return game_win;
 						_box_plane[t_float_id]-=box_switch_type;
 						_box_count++;
 						return game_push;
@@ -472,10 +463,7 @@ int game_process::move(int key)
 					}
 				}
 			}
-			else
-			{
-				return game_error;
-			}
+			return game_error;
 		break;
 	}
 	return 0;
@@ -485,6 +473,7 @@ int game_process::state()
 	int i,c;
 	for(i=2;i<5;i++)
 	{
+		//cout<<_level.value(_level.level(),i)<<" state:"<<i<<endl;
 		if(_box_plane[_level.value(_level.level(),i)] == fill_box_type)return -1;
 	}
 	return 0;
