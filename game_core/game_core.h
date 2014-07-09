@@ -456,14 +456,15 @@ int game_process::move(int key)
 			/* 如果滑动方块不是滑动而是摘取 */
 			if(!((_float_box_id+1)%column))
 			{
-				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id+(column-1);t_float_id-=1)
+				for(t_float_id = _float_box_id-1;t_float_id>_float_box_id-(column-1);t_float_id-=1)
 				{
 					/* 如果可以摘取则返回摘取ID */
-					if(_box_plane[t_float_id]>bind_box_type && _box_plane[t_float_id]<fill_box_type)
+					if(_box_plane[t_float_id]<bind_box_type && _box_plane[t_float_id]>fill_box_type)
 					{
+						cout<<"摘取"<<endl;
 						_box_plane[t_float_id]-=box_switch_type;
 						_box_count++;
-						return game_push;
+						return game_pull+t_float_id;
 					}
 					else
 					/* 如果是固定方块返回错误 */
