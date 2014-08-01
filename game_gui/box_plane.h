@@ -13,31 +13,31 @@ using namespace std;
 typedef class box_plane : public GUI<box_plane,sdl_widget>
 {
 	public:
-		box_plane();
-		box_plane(const char*,int,int,int,int,Uint32);
+		box_plane(); 
+		box_plane(const char*,int,int,int,int,Uint32); 
+		~box_plane();
 		int init();
-		int init(const char*,int,int,int,int,Uint32);
-		int init(int);
+		int init(const char*,int,int,int,int,Uint32); 
 		int sysevent(SDL_Event*);
-		int handle(int,SDL_Event*);
-		int on_keyup(sdl_board*,void*);
-		int on_win(sdl_board*,void*);
-		int on_next(sdl_board*,void*);
-	protected:
-		int move_float_box(int);
-		int push_box(int);
-		int pull_box(int);
+		int draw();
 	public:
-		fill_box _fill[3];
-		fill_box* _fill_ptr[4];
-		float_box _float;
-		sdlsurface _box;
-		sdl_widget _text;
-		sdl_clip bg;
+		int next_level();	
 	protected:
-		game_process game;
-		win_plane win;
-		stringstream str;
+		int move_float_box(int id);
+		int push_box(int id);
+		int pull_box(int id);
+	protected:
+		/* 背景剪辑 */
+		sdl_clip bg;
+		/* 游戏内核 */
+		game_process _game;
+		/* 活动方块 */
+		float_box _float_box;
+		/* 填充方块 */
+		fill_box _fill_box[3];
+		fill_box_ptr _fill_box_ptr[4];
+		/* 过关画面 */
+		win_plane _win;
 }*box_plane_ptr;
 box_plane::box_plane()
 	:
@@ -45,172 +45,158 @@ box_plane::box_plane()
 {
 	init();
 }
-box_plane::box_plane(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
+box_plane::box_plane(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags)
 	:
 		GUI<box_plane,sdl_widget>()
 {
-	init(ptitle,px,py,pw,ph,pflag);
+	init(ptitle,px,py,pw,ph,pflags);
+}
+box_plane::~box_plane()
+{
+
 }
 int box_plane::init()
 {
 	if(sdl_widget::init())return -1;
 	return 0;
 }
-int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
+int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags)
 {
-	if(sdl_widget::init(ptitle,px,py,pw,ph,pflag))return -1;
-	_box.init(NULL,pw/column,(ph-info_height)/row,32,0,0,0,0);
-	/* 加载背景 */
-	bg.init(pw/column,(ph-info_height)/row,"img/ball_backgroup.jpg");
-	/* 加载胜利画面 */
-	win.init("",0,0,pw,ph,1);
-	win.hide();
-	add<win_plane>(&win);
-	/* 注册事件 */
-	win.connect_event("on_click",this,123456789);
-	//
-	_fill[0].init(NULL,0,0,pw/column,(ph-info_height)/row,1);
-	_fill[1].init(NULL,0,0,pw/column,(ph-info_height)/row,1);
-	_fill[2].init(NULL,0,0,pw/column,(ph-info_height)/row,1);
-	_float.init(NULL,0,0,pw/column,(ph-info_height)/row,1);
-	_text.init(NULL,0,(ph-info_height),pw,info_height,1);
-	//
-	add<float_box>(&_float);
-	_float.connect_event("on_key_up",this,sdlgui_key_up);
-	add<fill_box>(&_fill[0]);
-	add<fill_box>(&_fill[1]);
-	add<fill_box>(&_fill[2]);
-	_fill[0].connect_event("on_key_up",this,sdlgui_key_up);
-	_fill[1].connect_event("on_key_up",this,sdlgui_key_up);
-	_fill[2].connect_event("on_key_up",this,sdlgui_key_up);
-	//
-	add<sdl_widget>(&_text);
-	_text.fill_rect(NULL,0x00ff00);
-	/* 初始化第一关游戏 */
-	_box.surface_blend_mode(SDL_BLENDMODE_BLEND);
-	init(0);
+	/* 初始背景剪辑 */
+	bg.init(clip_width,clip_height,bg_path);
+	if(sdl_widget::init(ptitle,px,py,pw,ph,pflags))return -1;
+	/* 加入活动方块 */
+	_float_box.init("",0,0,clip_width,clip_height,1);
+	add<float_box>(&_float_box);
+	/* 加入填充方块 */
+	_fill_box[0].init("",0,0,clip_width,clip_height,1);
+	_fill_box[1].init("",0,0,clip_width,clip_height,1);
+	_fill_box[2].init("",0,0,clip_width,clip_height,1);
+	add<fill_box>(&_fill_box[0]);
+	add<fill_box>(&_fill_box[1]);
+	add<fill_box>(&_fill_box[2]);
+	/* 加入过关画面 */
+	_win.init("",0,0,pw,ph,1);
+	//_win.sdl_widget::hide();
+	add<win_plane>(&_win);
+	/* 激活窗口 */
+	active();
+	/* 预定义事件 */
+	on_keyup()=[this](sdl_board& obj,SDL_Event& e)
+	{
+		int s;
+		switch(e.key.keysym.sym)
+		{
+			case SDLK_LEFT:
+				s = _game.move(move_left);
+			break;
+			case SDLK_RIGHT:
+				s = _game.move(move_right);
+			break;
+			case SDLK_UP:
+				s = _game.move(move_up);
+			break;
+			case SDLK_DOWN:
+				s = _game.move(move_down);
+			break;
+		}
+		if(s>=game_float)
+		{
+			s-=game_float;
+			move_float_box(s);
+		}
+		else
+		if(s>=game_push)
+		{
+			s-=game_push;
+			push_box(s);
+			if(!_game.state())
+			{
+				_win.show();
+			}
+		}
+		else
+		if(s>=game_pull)
+		{
+			s-=game_pull;
+			pull_box(s);
+		}
+		else
+		if(s>-1)
+		{
+			std::cout<<"win"<<std::endl;
+		}
+		else
+		{
+			std::cout<<"不能移动"<<std::endl;
+		}
+		cout<<s<<endl;
+		return 0;
+	};
+	_win.on_hide()=[this](sdl_board& obj,SDL_Event& e)
+	{
+		next_level();	
+		return 0;
+	};
 	return 0;
 }
-int box_plane::init(int l)
+int box_plane::sysevent(SDL_Event* e)
 {
-	int i;
+	return sdl_widget::sysevent(e);
+}
+int box_plane::draw()
+{
+	int i=0;
 	SDL_Rect rt;
-	int s=row*column;
-	/* 初始化游戏 */
-	game.init(l);
-	/* 初始化信息 */
-	str.clear();
-	str.str("");
-	str<<"亲！我们在第"<<game.level()<<"关还有"<<game.box_count()<<"个方块要打，等你哦！！！";
-	_text.text(str.str().c_str());
-	/* 初始化填充容器 */
-	_fill_ptr[0]=&_fill[0];
-	_fill_ptr[1]=&_fill[1];
-	_fill_ptr[2]=&_fill[2];
-	/* 画好背景 */
+	rt.w = clip_width; 
+	rt.h = clip_height; 
 	fill_rect(NULL,0xffffff);
-	rt.w = bg.clip_width();
-	rt.h = bg.clip_height();
-	for(i=0;i<s;i++)
+	sdlsurface tsur(0,rt.w,rt.h,32,0,0,0,0);
+	tsur.surface_blend_mode(SDL_BLENDMODE_BLEND);
+	_fill_box_ptr[0]=&_fill_box[0];
+	_fill_box_ptr[1]=&_fill_box[1];
+	_fill_box_ptr[2]=&_fill_box[2];
+	_fill_box[0].pull(0,0);
+	_fill_box[1].pull(0,0);
+	_fill_box[2].pull(0,0);
+	for(i=0;i<row*column;i++)
 	{
-		bg.clip(i,i,&_box,NULL);
-		switch(game.box_type(i))
+		bg.clip(i,i,&tsur,NULL);
+		switch(_game.box_type(i))	
 		{
 			case float_box_type:
-				_box.surface_alpha_mod(150);
+				tsur.surface_alpha_mod(float_box_alpha);
 			break;
 			case empty_box_type:
-				_box.surface_alpha_mod(255);
+				tsur.surface_alpha_mod(empty_box_alpha);
 			break;
 			case fill_box_type:
-				_box.surface_alpha_mod(200);
+				tsur.surface_alpha_mod(fill_box_alpha);
 			break;
 			case full_box_type:
-				_box.surface_alpha_mod(200);
+				tsur.surface_alpha_mod(full_box_alpha);
 			break;
 			case bind_box_type:
-				_box.surface_alpha_mod(50);
+				tsur.surface_alpha_mod(bind_box_alpha);
 			break;
 		}
 		rt.x = i%column*bg.clip_width();
 		rt.y = i/column*bg.clip_height();
-		_box.blit_surface(NULL,this,&rt);
+		tsur.blit_surface(NULL,this,&rt);
 	}
 	return 0;
+	//return sdl_widget::draw();
 }
-int box_plane::sysevent(SDL_Event*e)
+int box_plane::next_level()
 {
-	switch(e->type)
-	{
-		default:
-			break;
-	}
-	return sdl_widget::sysevent(e);
-}
-int box_plane::handle(int id,SDL_Event*e)
-{
-	switch(id)
-	{
-		case 123456789:
-			on_next(this,(void*)e);
-		break;
-	}
-	return sdl_widget::handle(id,e);
-}
-int box_plane::on_keyup(sdl_board* obj,void*e)
-{
-	int s;
-	switch(((SDL_Event*)e)->key.keysym.sym)
-	{
-		case SDLK_LEFT:
-			s = game.move(move_left);
-		break;
-		case SDLK_RIGHT:
-			s = game.move(move_right);
-		break;
-		case SDLK_UP:
-			s = game.move(move_up);
-		break;
-		case SDLK_DOWN:
-			s = game.move(move_down);
-		break;
-	}
-	/* 如果是移动滑块 */
-	if(s>=game_float)
-	{
-		s-=game_float;
-		move_float_box(s);
-	}
-	else
-	if(s>=game_push)
-	{
-		s-=game_push;
-		push_box(s);
-		if(!game.state())on_win(this,NULL);
-	}
-	else
-	if(s>=game_pull)
-	{
-		s-=game_pull;
-		pull_box(s);
-	}
-	else
-	if(s>-1)
-	{
-		cout<<"win"<<endl;
-	}
-	else
-	{
-		cout<<"不能移动方块"<<endl;
-	}
-	return 0;
+	_game.next();
+	return draw();
 }
 int box_plane::move_float_box(int id)
 {
 	int x = id%column*bg.clip_width();
 	int y = id/column*bg.clip_height();
-	_float.pos(x,y);
-	return 0;
+	return _float_box.pos(x,y);
 }
 int box_plane::push_box(int id)
 {
@@ -219,52 +205,32 @@ int box_plane::push_box(int id)
 	int y = id/column*bg.clip_height();
 	for(i=3;i;i--)
 	{
-		_fill_ptr[i]=_fill_ptr[i-1];
+		_fill_box_ptr[i]=_fill_box_ptr[i-1];
 	}
-	_fill_ptr[0]=_fill_ptr[3];
-	_fill_ptr[0]->pos(_float.pos_x(),_float.pos_y());
-	str.clear();
-	str.str("");
-	str<<"亲！我们在第"<<game.level()<<"关还有"<<game.box_count()<<"个方块要打，等你哦！！！";
-	_text.text(str.str().c_str());
-	return _fill_ptr[0]->push(x,y);
+	_fill_box_ptr[0]=_fill_box_ptr[3];
+	_fill_box_ptr[0]->pos(_float_box.pos_x(),_float_box.pos_y());
+	return _fill_box_ptr[0]->push(x,y);
 }
 int box_plane::pull_box(int id)
 {
-	int x = _float.pos_x();
-	int y = _float.pos_y();
+	int i;
+	int x = _float_box.pos_x();
+	int y = _float_box.pos_y();
 	int box_x = id%column*bg.clip_width();
 	int box_y = id/column*bg.clip_height();
-	int i;
-	for(i=0;i<(4-game.box_count());i++)
+
+	for(i=0;i<(4-_game.box_count());i++)
 	{
-		if(_fill_ptr[i]->_loc.x==box_x && _fill_ptr[i]->_loc.y==box_y)
+		if(_fill_box_ptr[i]->_loc.x==box_x && _fill_box_ptr[i]->_loc.y==box_y)
 		{
-			_fill_ptr[3]=_fill_ptr[i];
+			_fill_box_ptr[3]=_fill_box_ptr[i];
 			for(i;i<3;i++)
 			{
-				_fill_ptr[i]=_fill_ptr[i+1];	
+				_fill_box_ptr[i]=_fill_box_ptr[i+1];
 			}
-			str.clear();
-			str.str("");
-			str<<"亲！我们在第"<<game.level()<<"关还有"<<game.box_count()<<"个方块要打，等你哦！！！";
-			_text.text(str.str().c_str());
-			return _fill_ptr[3]->pull(x,y);
+			return _fill_box_ptr[3]->pull(x,y);
 		}
 	}
 	return -1;
-}
-int box_plane::on_win(sdl_board* obj,void* data)
-{
-	win.show();
-}
-int box_plane::on_next(sdl_board* obj,void* data)
-{
-	int i;
-	for(i=0;i<3;i++)
-	{
-		_fill[i].pull(0,0);
-	}
-	init(game.level()+1);
 }
 #endif

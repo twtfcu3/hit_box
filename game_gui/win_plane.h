@@ -10,11 +10,10 @@ typedef class win_plane : public GUI<win_plane,sdl_widget>
 		int init();
 		int init(const char*,int,int,int,int,Uint32);
 		int sysevent(SDL_Event*);
-		int handle(int,SDL_Event*);
-		int on_timer(sdl_board*,void*);
-		int on_click(sdl_board*,void*);
 		int show();
 		int hide();
+	public:
+		event_signal on_hide;
 	protected:
 		SDL_TimerID _timer;
 		int _state;
@@ -39,13 +38,55 @@ int win_plane::init()
 }
 int win_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
 {
+	SDL_Event e;
 	if(sdl_widget::init(ptitle,px,py,pw,ph,pflag))return -1;
 	_state = 0;
-	_alpha = 255;
-	img_load("img/mouth.bmp");
+	_alpha = 0;
+	img_load(mouth_path);
 	color_key(1,0x00);
 	blend(SDL_BLENDMODE_BLEND);
-	//sdl_board::hide();
+	alpha(_alpha);
+	sdl_widget::hide();
+	/* 预定义事件 */
+	on_timer()=[this](sdl_board& obj,SDL_Event& e)
+	{
+		sdl_board::show();
+		if(_state)
+		{
+			if(_alpha<255)
+			{
+				_alpha+=(_alpha+1);
+			}
+			else
+			{
+				_alpha = 255;
+				SDL_RemoveTimer(_timer);
+				_timer = 0;
+			}
+		}
+		else
+		{
+			if(_alpha>=10)
+			{
+				_alpha-=(_alpha/3);
+			}
+			else
+			{
+				_alpha = 0;
+				SDL_RemoveTimer(_timer);
+				_timer = 0;
+				sdl_board::hide();
+				on_hide(*this,e);
+			}
+		}
+		alpha(_alpha);
+		return 0;
+	};
+	on_click()=[this](sdl_board& obj,SDL_Event& e)
+	{
+		hide();
+		return 0;
+	};
 	return 0;
 }
 int win_plane::sysevent(SDL_Event*e)
@@ -56,45 +97,6 @@ int win_plane::sysevent(SDL_Event*e)
 			break;
 	}
 	return sdl_widget::sysevent(e);
-}
-int win_plane::handle(int id,SDL_Event* e)
-{
-	return sdl_widget::handle(id,e);
-}
-int win_plane::on_timer(sdl_board* obj,void* data)
-{
-	if(_state)
-	{
-		if(_alpha<255)
-		{
-			_alpha+=(_alpha+1);
-		}
-		else
-		{
-			_alpha = 255;
-			SDL_RemoveTimer(_timer);
-			_timer = 0;
-		}
-	}
-	else
-	{
-		if(_alpha>=10)
-		{
-			_alpha-=(_alpha/3);
-		}
-		else
-		{
-			_alpha = 0;
-			SDL_RemoveTimer(_timer);
-			_timer = 0;
-			sdl_board::hide();
-		}
-	}
-	alpha(_alpha);
-}
-int win_plane::on_click(sdl_board* obj,void* data)
-{
-	hide();
 }
 int win_plane::show()
 {

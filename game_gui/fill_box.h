@@ -16,7 +16,6 @@ typedef class fill_box : public GUI<fill_box,sdl_widget>
 		int init(const char*,int,int,int,int,Uint32);
 		int sysevent(SDL_Event*);
 		int handle(int,SDL_Event*);
-		int on_timer(sdl_board*,void*);
 		int push(int,int);
 		int pull(int,int);
 	protected:
@@ -51,6 +50,27 @@ int fill_box::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflag)
 	fill_rect(NULL,0x0000ff);
 	blend(SDL_BLENDMODE_BLEND);
 	alpha(0);
+	/* 预定义事件 */
+	on_timer()=[this](sdl_board& obj,SDL_Event& e)
+	{
+		int dx = _rect.x;
+		int dy = _rect.y;
+		int dst = sqrt(pow((dx-_loc.x),2)+pow((dy-_loc.y),2));
+		if(dst>5)
+		{
+			_rect.x += (_loc.x-_rect.x)/3;
+			_rect.y += (_loc.y-_rect.y)/3;
+			alpha(abs(dst/_dst-_f)*255);
+		}
+		else
+		{
+			SDL_RemoveTimer(_timer);
+			_timer = 0;
+			_rect.x = _loc.x;
+			_rect.y = _loc.y;
+		}
+		return 0;
+	};
 	return 0;
 }
 int fill_box::sysevent(SDL_Event*e)
@@ -65,26 +85,6 @@ int fill_box::sysevent(SDL_Event*e)
 int fill_box::handle(int id,SDL_Event* e)
 {
 	return sdl_widget::handle(id,e);
-}
-int fill_box::on_timer(sdl_board* obj,void* data)
-{
-	int dx = _rect.x;
-	int dy = _rect.y;
-	int dst = sqrt(pow((dx-_loc.x),2)+pow((dy-_loc.y),2));
-	if(dst>5)
-	{
-		_rect.x += (_loc.x-_rect.x)/3;
-		_rect.y += (_loc.y-_rect.y)/3;
-		alpha(abs(dst/_dst-_f)*255);
-	}
-	else
-	{
-		SDL_RemoveTimer(_timer);
-		_timer = 0;
-		_rect.x = _loc.x;
-		_rect.y = _loc.y;
-	}
-	return 0;
 }
 int fill_box::push(int x,int y)
 {

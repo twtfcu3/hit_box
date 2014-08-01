@@ -1,8 +1,18 @@
 ﻿#ifndef __INC__HEAD__
 #define __INC__HEAD__
+const int info_height = 30;
 const int row = 8;
 const int column = 8;
-const int info_height = 30;
+const int clip_width = 320/row;
+const int clip_height= (350-info_height)/column;
+const char* bg_path = "img/ball_backgroup.jpg";
+const char* mouth_path = "img/mouth.bmp";
+//-----------------------------------------
+const int float_box_alpha = 150;
+const int empty_box_alpha = 255;
+const int fill_box_alpha = 200;
+const int full_box_alpha = 200;
+const int bind_box_alpha = 50;
 //-----------------------------------------
 const int float_box_type = 1;
 const int empty_box_type = 3;
