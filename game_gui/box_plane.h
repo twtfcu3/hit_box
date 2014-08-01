@@ -38,6 +38,9 @@ typedef class box_plane : public GUI<box_plane,sdl_widget>
 		fill_box_ptr _fill_box_ptr[4];
 		/* 过关画面 */
 		win_plane _win;
+		/* 信息画面 */
+		sdl_widget _info;
+		stringstream _info_str;
 }*box_plane_ptr;
 box_plane::box_plane()
 	:
@@ -64,6 +67,7 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 {
 	/* 初始背景剪辑 */
 	bg.init(clip_width,clip_height,bg_path);
+	_info.init("亲，我们在第0关还有3个方块要打，等你哦!!",0,ph-info_height,pw,info_height,1);
 	if(sdl_widget::init(ptitle,px,py,pw,ph,pflags))return -1;
 	/* 加入活动方块 */
 	_float_box.init("",0,0,clip_width,clip_height,1);
@@ -75,10 +79,15 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 	add<fill_box>(&_fill_box[0]);
 	add<fill_box>(&_fill_box[1]);
 	add<fill_box>(&_fill_box[2]);
-	/* 加入过关画面 */
-	_win.init("",0,0,pw,ph,1);
-	//_win.sdl_widget::hide();
+	/* 加入过关画面 */  
+
+	_win.init ("",0,0,pw,ph,1);
 	add<win_plane>(&_win);
+	/* 加入信息画面 */
+	_info.blend(SDL_BLENDMODE_BLEND);
+	_info.fill_rect(NULL,0xffffff);
+	_info.color_key(1,0xffffff);
+	add<sdl_widget>(&_info);
 	/* 激活窗口 */
 	active();
 	/* 预定义事件 */
@@ -110,6 +119,10 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 		{
 			s-=game_push;
 			push_box(s);
+			_info_str.clear();
+			_info_str.str("");
+			_info_str<<"亲，我们在第"<<_game.level()<<"关还有"<<_game.box_count()<<"方块要打，等你哦!!";
+			_info.text(_info_str.str().c_str());
 			if(!_game.state())
 			{
 				_win.show();
@@ -120,6 +133,10 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 		{
 			s-=game_pull;
 			pull_box(s);
+			_info_str.clear();
+			_info_str.str("");
+			_info_str<<"亲，我们在第"<<_game.level()<<"关还有"<<_game.box_count()<<"方块要打，等你哦!!";
+			_info.text(_info_str.str().c_str());
 		}
 		else
 		if(s>-1)
@@ -184,6 +201,10 @@ int box_plane::draw()
 		rt.y = i/column*bg.clip_height();
 		tsur.blit_surface(NULL,this,&rt);
 	}
+	_info_str.clear();
+	_info_str.str("");
+	_info_str<<"亲，我们在第"<<_game.level()<<"关还有"<<_game.box_count()<<"方块要打，等你哦!!";
+	_info.text(_info_str.str().c_str());
 	return 0;
 	//return sdl_widget::draw();
 }
