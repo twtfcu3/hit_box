@@ -79,6 +79,9 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 	add<fill_box>(&_fill_box[0]);
 	add<fill_box>(&_fill_box[1]);
 	add<fill_box>(&_fill_box[2]);
+	_fill_box_ptr[0]=&_fill_box[0];
+	_fill_box_ptr[1]=&_fill_box[1];
+	_fill_box_ptr[2]=&_fill_box[2];
 	/* 加入过关画面 */  
 
 	_win.init ("",0,0,pw,ph,1);
@@ -88,6 +91,8 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 	_info.fill_rect(NULL,0xffffff);
 	_info.color_key(1,0xffffff);
 	add<sdl_widget>(&_info);
+	/* 填充窗口 */
+	draw();
 	/* 激活窗口 */
 	active();
 	/* 预定义事件 */
@@ -147,7 +152,6 @@ int box_plane::init(const char* ptitle,int px,int py,int pw,int ph,Uint32 pflags
 		{
 			std::cout<<"不能移动"<<std::endl;
 		}
-		cout<<s<<endl;
 		return 0;
 	};
 	_win.on_hide()=[this](sdl_board& obj,SDL_Event& e)
